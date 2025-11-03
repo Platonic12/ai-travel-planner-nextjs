@@ -17,31 +17,68 @@
 
 ### 方式一：Docker 运行（推荐）
 
-#### 1. 拉取 Docker 镜像
+#### 1. 准备环境变量文件
 
-```bash
-# 从阿里云镜像仓库拉取（如果已推送）
-docker pull registry.cn-hangzhou.aliyuncs.com/YOUR_NAMESPACE/ai-travel-planner:latest
+创建 `.env.local` 文件（在项目根目录），填入所有必需的 API Key：
+
+```env
+# 高德地图 API Key（用于前端地图展示）
+NEXT_PUBLIC_AMAP_KEY=your_amap_web_key
+
+# 高德地图 API Key（用于后端地理编码查询）
+AMAP_WEB_KEY=your_amap_web_key
+
+# 腾讯混元 API 凭证
+TENCENT_SECRET_ID=your_tencent_secret_id
+TENCENT_SECRET_KEY=your_tencent_secret_key
+
+# Supabase 配置（用于数据存储）
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
-#### 2. 运行容器
+#### 2. 拉取 Docker 镜像
+
+```bash
+# 从阿里云个人实例拉取镜像
+docker pull crpi-tr8233lmi3k93dod.cn-hangzhou.personal.cr.aliyuncs.com/ai-travel-planner-nextjs/ai-travel-planner:latest
+```
+
+#### 3. 运行容器
 
 ```bash
 docker run -d \
+  --env-file .env.local \
   -p 3000:3000 \
-  -e AMAP_WEB_KEY=YOUR_AMAP_KEY \
-  -e TENCENT_SECRET_ID=YOUR_TENCENT_SECRET_ID \
-  -e TENCENT_SECRET_KEY=YOUR_TENCENT_SECRET_KEY \
-  -e NEXT_PUBLIC_AMAP_KEY=YOUR_AMAP_KEY \
-  -e NEXT_PUBLIC_SUPABASE_URL=YOUR_SUPABASE_URL \
-  -e NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY \
   --name ai-travel-planner \
-  registry.cn-hangzhou.aliyuncs.com/YOUR_NAMESPACE/ai-travel-planner:latest
+  crpi-tr8233lmi3k93dod.cn-hangzhou.personal.cr.aliyuncs.com/ai-travel-planner-nextjs/ai-travel-planner:latest
 ```
 
-#### 3. 访问应用
+> 💡 **提示**：使用 `--env-file .env.local` 可以一次性加载所有环境变量，比使用多个 `-e` 参数更方便。
+
+#### 4. 访问应用
 
 打开浏览器访问：http://localhost:3000
+
+#### 5. 查看日志
+
+```bash
+# 查看容器日志
+docker logs ai-travel-planner
+
+# 实时查看日志
+docker logs -f ai-travel-planner
+```
+
+#### 6. 停止和删除容器
+
+```bash
+# 停止容器
+docker stop ai-travel-planner
+
+# 删除容器
+docker rm ai-travel-planner
+```
 
 ### 方式二：本地开发运行
 
@@ -120,7 +157,20 @@ yarn dev
 2. 创建新项目
 3. 进入「Project Settings」→「API」
 4. 获取 `Project URL` 和 `anon public` key
-5. 在 SQL Editor 中创建 `itineraries` 表（见下方）
+5. **配置邮件服务（重要）**：
+   - 进入「Project Settings」→「Authentication」→「URL Configuration」
+   - 设置「Site URL」为 `http://localhost:3000`（本地开发）或你的生产域名
+   - 设置「Redirect URLs」为 `http://localhost:3000/**`（本地）或生产域名
+   - 进入「Authentication」→「Email Templates」可自定义邮件模板
+   - 如需使用自定义 SMTP（可选），进入「Project Settings」→「Auth」→「SMTP Settings」
+6. 在 SQL Editor 中创建 `itineraries` 表（见下方）
+
+> ⚠️ **邮件无法收到的排查**：
+> 1. 检查邮箱的**垃圾邮件箱**
+> 2. 确认 Supabase 项目的「Site URL」配置正确
+> 3. 查看 Supabase Dashboard →「Authentication」→「Logs」查看邮件发送状态
+> 4. 确认邮箱地址格式正确
+> 5. 如果是免费计划，可能有邮件发送频率限制
 
 ## 📊 数据库设置
 
@@ -191,17 +241,32 @@ docker build -t ai-travel-planner:latest .
 ### 推送到阿里云镜像仓库
 
 ```bash
-# 登录阿里云容器镜像服务
-docker login --username=YOUR_USERNAME registry.cn-hangzhou.aliyuncs.com
+# 登录阿里云个人实例
+docker login --username=YOUR_USERNAME crpi-tr8233lmi3k93dod.cn-hangzhou.personal.cr.aliyuncs.com
 
 # 标记镜像
-docker tag ai-travel-planner:latest registry.cn-hangzhou.aliyuncs.com/YOUR_NAMESPACE/ai-travel-planner:latest
+docker tag ai-travel-planner:latest crpi-tr8233lmi3k93dod.cn-hangzhou.personal.cr.aliyuncs.com/ai-travel-planner-nextjs/ai-travel-planner:latest
 
 # 推送镜像
-docker push registry.cn-hangzhou.aliyuncs.com/YOUR_NAMESPACE/ai-travel-planner:latest
+docker push crpi-tr8233lmi3k93dod.cn-hangzhou.personal.cr.aliyuncs.com/ai-travel-planner-nextjs/ai-travel-planner:latest
 ```
 
 > 注意：上述操作也可以通过 GitHub Actions 自动完成（见 `.github/workflows/docker-build.yml`）
+
+### 使用环境变量文件运行（推荐）
+
+为了方便管理环境变量，建议使用 `.env.local` 文件：
+
+```bash
+# 运行容器时使用环境变量文件
+docker run -d \
+  --env-file .env.local \
+  -p 3000:3000 \
+  --name ai-travel-planner \
+  crpi-tr8233lmi3k93dod.cn-hangzhou.personal.cr.aliyuncs.com/ai-travel-planner-nextjs/ai-travel-planner:latest
+```
+
+这样就不需要在命令中逐个指定环境变量，更加简洁和安全。
 
 ## 🔧 技术栈
 
@@ -275,11 +340,49 @@ docker push registry.cn-hangzhou.aliyuncs.com/YOUR_NAMESPACE/ai-travel-planner:l
 
 ---
 
+## ❓ 常见问题
+
+### 1. 登录时无法收到邮件
+
+**可能原因**：
+- Supabase 项目的「Site URL」未正确配置
+- 邮件被放入垃圾邮件箱
+- Supabase 免费计划有邮件发送限制
+- 邮箱地址格式不正确
+
+**解决方法**：
+1. 检查 Supabase Dashboard →「Authentication」→「URL Configuration」
+   - 设置「Site URL」为 `http://localhost:3000`（开发环境）
+   - 添加「Redirect URLs」为 `http://localhost:3000/**`
+2. 检查邮箱的**垃圾邮件箱**
+3. 查看 Supabase Dashboard →「Authentication」→「Logs」查看邮件发送状态
+4. 确认邮箱地址格式正确（如 `user@example.com`）
+5. 如果使用 Docker，确保环境变量 `NEXT_PUBLIC_SUPABASE_URL` 和 `NEXT_PUBLIC_SUPABASE_ANON_KEY` 已正确配置
+
+### 2. Docker 容器中无法发送邮件
+
+确保在 `.env.local` 文件中配置了正确的 Supabase 环境变量：
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+并在运行容器时使用 `--env-file .env.local` 加载这些变量。
+
+### 3. 地图无法显示
+
+确保：
+1. 高德地图 API Key 已正确配置
+2. 在 `.env.local` 中设置了 `NEXT_PUBLIC_AMAP_KEY`
+3. API Key 已开通 Web 服务（JS API）
+
+---
+
 ## 🔗 GitHub 仓库
 
 **仓库地址**: https://github.com/YOUR_USERNAME/ai-travel-planner-nextjs
 
-**Docker 镜像**: `registry.cn-hangzhou.aliyuncs.com/YOUR_NAMESPACE/ai-travel-planner:latest`
+**Docker 镜像**: `crpi-tr8233lmi3k93dod.cn-hangzhou.personal.cr.aliyuncs.com/ai-travel-planner-nextjs/ai-travel-planner:latest`
 
 ---
 
