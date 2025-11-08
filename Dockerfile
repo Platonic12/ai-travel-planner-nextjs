@@ -42,6 +42,10 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# 复制并设置启动脚本
+COPY --chown=nextjs:nodejs docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
 USER nextjs
 
 EXPOSE 3000
@@ -49,5 +53,5 @@ EXPOSE 3000
 ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-# 启动 Next.js 应用
-CMD ["node", "server.js"]
+# 使用启动脚本启动 Next.js 应用（以支持运行时环境变量）
+ENTRYPOINT ["./docker-entrypoint.sh"]
